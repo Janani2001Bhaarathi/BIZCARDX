@@ -204,34 +204,25 @@ if selected == "Database":
                 st.dataframe(df_rslt1)
 
     if selected == "Deleted":
-        col1, col2 = st.columns([4, 4])
-        with col1:
-            mycursor.execute("SELECT NAME FROM BUSINESS_CARD")
-            Y = mycursor.fetchall()
-            names = ["Select"]
-            for i in Y:
-                names.append(i[0])
-            name_selected = st.selectbox("Select the name to delete", options=names)
-            # st.write(name_selected)
-        with col2:
-            mycursor.execute(f"SELECT DESIGNATION FROM BUSINESS_CARD WHERE NAME = '{name_selected}'")
-            Z = mycursor.fetchall()
-            designation = ["Select"]
-            for j in Z:
-                designation.append(j[0])
-            designation_selected = st.selectbox("Select the designation of the chosen name", options=designation)
+        mycursor.execute(f"SELECT * FROM BUSINESS_CARD;")
+        Y = mycursor.fetchall()
+        df_rslt = pd.DataFrame(np.array(Y),columns=["NAME", "DESIGNATION", "COMPANY_NAME", "CONTACT", "EMAIL", "WEBSITE", "ADDRESS", "PINCODE"])
+        df = df_rslt.set_index(pd.Index(range(1, len(df_rslt) + 1)))
+        st.dataframe(df)
+        row_to_delete = st.multiselect('Select row to delete:', df.index)
+        if st.checkbox('Confirm deletion of selected row(s)'):
+            if row_to_delete:
+                emails_to_delete = df.loc[row_to_delete, 'EMAIL'].tolist()
+                for email in emails_to_delete:
+                    mycursor.execute("DELETE FROM BUSINESS_CARD WHERE email = %s", (email,))
+                    mydb.commit()
+                df = df.drop(row_to_delete).reset_index(drop=True)
+                st.success(f"Row(s) {row_to_delete} deleted.")
+            else:
+                st.warning("No row selected for deletion.")
 
-        st.markdown(" ")
-
-        col_a, col_b, col_c = st.columns([5, 3, 3])
-        with col_b:
-            remove = st.button("Clik here to delete")
-        if name_selected and designation_selected and remove:
-            mycursor.execute(
-                f"DELETE FROM BUSINESS_CARD WHERE NAME = '{name_selected}' AND DESIGNATION = '{designation_selected}'")
-            mydb.commit()
-            if remove:
-                st.warning('DELETED', icon="⚠️")
+        st.write("Updated Data")
+        st.dataframe(df)
 
 
 
